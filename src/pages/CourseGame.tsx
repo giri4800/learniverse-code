@@ -191,7 +191,7 @@ const CourseGame = () => {
       toast({
         title: "Congratulations!",
         description: "You've completed all levels!",
-        variant: "success",
+        variant: "default", // Changed from "success" to "default" to match allowed types
       });
     }
   };
