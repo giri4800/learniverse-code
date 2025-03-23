@@ -40,7 +40,8 @@ const CourseGame = () => {
       cancelAnimationFrame(animationFrameRef.current);
     }
     
-    if (mountRef.current && rendererRef.current) {
+    // Fix: Check if the renderer's DOM element is actually a child of mountRef before removing
+    if (mountRef.current && rendererRef.current && rendererRef.current.domElement.parentNode === mountRef.current) {
       mountRef.current.removeChild(rendererRef.current.domElement);
     }
     
@@ -135,7 +136,11 @@ const CourseGame = () => {
   useEffect(() => {
     if (gameStarted) {
       const cleanup = initThreeJS();
-      return cleanup;
+      
+      // Return the cleanup function
+      return () => {
+        if (cleanup) cleanup();
+      };
     }
   }, [gameStarted, currentLevel]);
 
