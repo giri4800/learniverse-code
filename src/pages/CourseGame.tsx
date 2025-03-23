@@ -18,7 +18,8 @@ const CourseGame = () => {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const cubeRef = useRef<THREE.Mesh | null>(null);
+  const gameObjectRef = useRef<THREE.Mesh | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const { toast } = useToast();
 
   // Fetch course data
@@ -33,9 +34,38 @@ const CourseGame = () => {
     }
   }, [courseId]);
 
+  // Clean up Three.js resources
+  const cleanupThreeJS = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    
+    if (mountRef.current && rendererRef.current) {
+      mountRef.current.removeChild(rendererRef.current.domElement);
+    }
+    
+    if (sceneRef.current) {
+      // Dispose geometries and materials
+      sceneRef.current.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          
+          if (object.material instanceof THREE.Material) {
+            object.material.dispose();
+          } else if (Array.isArray(object.material)) {
+            object.material.forEach((material) => material.dispose());
+          }
+        }
+      });
+    }
+  };
+
   // Initialize Three.js scene
-  useEffect(() => {
-    if (!mountRef.current || !gameStarted) return;
+  const initThreeJS = () => {
+    if (!mountRef.current) return;
+    
+    // Cleanup any existing scene
+    cleanupThreeJS();
 
     // Setup scene
     const scene = new THREE.Scene();
@@ -71,11 +101,11 @@ const CourseGame = () => {
 
     // Animation loop
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationFrameRef.current = requestAnimationFrame(animate);
       
-      if (cubeRef.current) {
-        cubeRef.current.rotation.x += 0.01;
-        cubeRef.current.rotation.y += 0.01;
+      if (gameObjectRef.current) {
+        gameObjectRef.current.rotation.x += 0.01;
+        gameObjectRef.current.rotation.y += 0.01;
       }
       
       renderer.render(scene, camera);
@@ -94,51 +124,29 @@ const CourseGame = () => {
     
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
+    // Return cleanup function
     return () => {
       window.removeEventListener('resize', handleResize);
-      
-      if (mountRef.current && rendererRef.current) {
-        mountRef.current.removeChild(rendererRef.current.domElement);
-      }
-      
-      if (sceneRef.current) {
-        // Dispose geometries and materials
-        sceneRef.current.traverse((object) => {
-          if (object instanceof THREE.Mesh) {
-            object.geometry.dispose();
-            
-            if (object.material instanceof THREE.Material) {
-              object.material.dispose();
-            } else if (Array.isArray(object.material)) {
-              object.material.forEach((material) => material.dispose());
-            }
-          }
-        });
-      }
+      cleanupThreeJS();
     };
+  };
+
+  // Effect to initialize Three.js when game starts or level changes
+  useEffect(() => {
+    if (gameStarted) {
+      const cleanup = initThreeJS();
+      return cleanup;
+    }
   }, [gameStarted, currentLevel]);
 
   // Add objects based on level
   const addLevelObjects = (scene: THREE.Scene, level: number) => {
-    // Clear previous objects
-    while (scene.children.length > 0) {
-      const object = scene.children[0];
-      if (object instanceof THREE.Light) {
-        scene.add(object.clone()); // Keep lights
-        scene.remove(object);
-      } else {
-        scene.remove(object);
+    // Clear previous objects (except lights)
+    scene.children.forEach((child) => {
+      if (!(child instanceof THREE.Light)) {
+        scene.remove(child);
       }
-    }
-
-    // Add ambient and directional light back
-    const ambientLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
+    });
 
     // Add shapes based on level
     if (level <= 3) {
@@ -149,7 +157,7 @@ const CourseGame = () => {
       });
       const cube = new THREE.Mesh(geometry, material);
       scene.add(cube);
-      cubeRef.current = cube;
+      gameObjectRef.current = cube;
     } else if (level <= 6) {
       // Intermediate levels - torus
       const torusGeometry = new THREE.TorusGeometry(1, 0.4, 16, 50);
@@ -158,7 +166,7 @@ const CourseGame = () => {
       });
       const torus = new THREE.Mesh(torusGeometry, torusMaterial);
       scene.add(torus);
-      cubeRef.current = torus;
+      gameObjectRef.current = torus;
     } else {
       // Advanced levels - more complex shapes
       const geometry = new THREE.DodecahedronGeometry(1, 0);
@@ -168,7 +176,7 @@ const CourseGame = () => {
       });
       const shape = new THREE.Mesh(geometry, material);
       scene.add(shape);
-      cubeRef.current = shape;
+      gameObjectRef.current = shape;
     }
   };
 
@@ -187,13 +195,29 @@ const CourseGame = () => {
         title: `Level ${currentLevel + 1}`,
         description: "New level unlocked! Keep going!",
       });
+
+      // Reinitialize the scene with new level objects
+      if (sceneRef.current) {
+        addLevelObjects(sceneRef.current, currentLevel + 1);
+      }
     } else {
       toast({
         title: "Congratulations!",
         description: "You've completed all levels!",
-        variant: "default", // Changed from "success" to "default" to match allowed types
+        variant: "default",
       });
     }
+  };
+
+  const handleRestartGame = () => {
+    setCurrentLevel(1);
+    if (sceneRef.current) {
+      addLevelObjects(sceneRef.current, 1);
+    }
+    toast({
+      title: "Game Restarted",
+      description: "Starting from Level 1. Good luck!",
+    });
   };
 
   if (isLoading) {
@@ -262,14 +286,14 @@ const CourseGame = () => {
               <>
                 <div 
                   ref={mountRef} 
-                  className="w-full h-[400px] bg-gray-100 rounded-xl overflow-hidden mb-6"
+                  className="w-full h-[400px] bg-gray-100 rounded-xl overflow-hidden mb-6 cursor-pointer"
                   onClick={handleNextLevel}
                 />
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-gray-500">Click on the shape to advance to the next level</p>
                   <Button
                     variant="outline"
-                    onClick={() => setCurrentLevel(1)}
+                    onClick={handleRestartGame}
                     className="text-sm"
                   >
                     Restart Game
