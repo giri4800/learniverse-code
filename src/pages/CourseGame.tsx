@@ -230,27 +230,24 @@ const CourseGame = () => {
     <MainLayout>
       <div className="pt-32 pb-16">
         <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <div className="mb-6 flex justify-between items-center">
               <Link to={`/course/${courseId}`} className="flex items-center text-sm text-gray-500 hover:text-blue-500 transition-smooth">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Course
               </Link>
-              <div className="flex items-center">
-                <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
-                <span className="font-medium">Level {currentLevel}/10</span>
-              </div>
-            </div>
-
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold mb-2">{course.title} Game</h1>
-              <p className="text-gray-600">Complete all 10 levels to master {course.title}</p>
+              {gameStarted && (
+                <div className="flex items-center">
+                  <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
+                  <span className="font-medium">Level {currentLevel}/10</span>
+                </div>
+              )}
             </div>
 
             {!gameStarted ? (
-              <div className="text-center p-12 border-2 border-dashed border-gray-300 rounded-xl mb-8">
-                <h2 className="text-2xl font-bold mb-4">Ready to Play?</h2>
-                <p className="text-gray-600 mb-6">
+              <div className="text-center p-12 border border-gray-200 rounded-xl mb-8 bg-white shadow-sm">
+                <h1 className="text-3xl font-bold mb-6">Ready to Play?</h1>
+                <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
                   This interactive game will help you learn {course.title} concepts through 10 increasingly challenging levels.
                 </p>
                 <Button 
