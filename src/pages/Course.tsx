@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { getCourseById } from '@/lib/courses';
 import MainLayout from '@/layouts/MainLayout';
 import CourseContent from '@/components/CourseContent';
-import { ArrowLeft, Book, Clock, Globe, Users, Star } from 'lucide-react';
+import { ArrowLeft, Book, Clock, Globe, Users, Star, GamepadIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Course = () => {
@@ -89,19 +89,27 @@ const Course = () => {
                 Back to Courses
               </Link>
 
-              <div className="flex items-center mb-2">
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-lg mr-3 flex items-center justify-center text-white",
-                    `bg-${course.color}-500`
-                  )}
-                  style={{ backgroundColor: `var(--tw-colors-${course.color}-500, #3B82F6)` }}
-                >
-                  <span className="text-xl" dangerouslySetInnerHTML={{ __html: course.icon }} />
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-lg mr-3 flex items-center justify-center text-white",
+                      `bg-${course.color}-500`
+                    )}
+                    style={{ backgroundColor: `var(--tw-colors-${course.color}-500, #3B82F6)` }}
+                  >
+                    <span className="text-xl" dangerouslySetInnerHTML={{ __html: course.icon }} />
+                  </div>
+                  <span className="text-sm font-medium px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                    {course.category.charAt(0).toUpperCase() + course.category.slice(1)}
+                  </span>
                 </div>
-                <span className="text-sm font-medium px-3 py-1 rounded-full bg-blue-100 text-blue-700">
-                  {course.category.charAt(0).toUpperCase() + course.category.slice(1)}
-                </span>
+                <Link to={`/course/${courseId}/game`}>
+                  <Button className="rounded-full bg-green-500 hover:bg-green-600">
+                    <GamepadIcon className="mr-2 h-4 w-4" />
+                    Practice Game
+                  </Button>
+                </Link>
               </div>
 
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -260,5 +268,5 @@ const Course = () => {
 
 export default Course;
 
-// Missing import for the Check icon, let's add it:
+// Imports
 import { Check } from 'lucide-react';
